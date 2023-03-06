@@ -37,7 +37,8 @@ public class homework {
 
     //Scores
     static final int captureScore = 10000;
-    static final int openTesseraScore = 5000;
+    static final int openTesseraScore = 6000;
+    static final int stretchFourScore = 6000;
     static final int openTriaScore = 1000;
     static final int stretchTriaScore = 300;
     static final int openTwoScore = 200;
@@ -138,13 +139,15 @@ public class homework {
         }
         //Get the one move change be comparing prev from text file or calculate for the first time
         getLegalMovesAndMinMaxRowCol();
-
-        int rootScore = alphaBeta(board, 3, Integer.MIN_VALUE, Integer.MAX_VALUE, boardStatus.noOfPlayerCaptures, boardStatus.noOfOpponentCaptures, false);
+        sortValidMoves();
+        int rootScore = alphaBeta(board, 3, Integer.MIN_VALUE, Integer.MAX_VALUE, boardStatus.noOfPlayerCaptures, boardStatus.noOfOpponentCaptures, false, validMoves);
         System.out.println(rootScore);
         System.out.println("Score of stone: " + getStoneScore(board, 12,7, player));
 
         return playerNextMove;
     }
+
+
 
     private static void getLegalMovesAndMinMaxRowCol() {
         int k = 0;
@@ -210,7 +213,7 @@ public class homework {
         System.out.println("Number of pairs: " + pairs);
     }
 
-    public static int alphaBeta(char[][] board, int depth, int alpha, int beta, int playerCaptures, int opponentCaptures, boolean isMaximizingPlayer) {
+    public static int alphaBeta(char[][] board, int depth, int alpha, int beta, int playerCaptures, int opponentCaptures, boolean isMaximizingPlayer, List<int[]> validMoves) {
         if(playerCaptures == 5) {
             return Integer.MAX_VALUE;
         }
@@ -222,11 +225,10 @@ public class homework {
             return evaluate(board, playerCaptures, opponentCaptures);
         }
 
-        List<int[]> validMoves = getValidMoves(board);
-
         if (isMaximizingPlayer) {
             int bestScore = Integer.MIN_VALUE;
             for (int[] move : validMoves) {
+                if(board[move[0]][move[1]] != '.') continue;
                 int score;
                 char[][] newBoard = makeMove(board, move, opponent);
                 opponentCaptures += getNoOfCaptures(newBoard, move, opponent);
@@ -234,7 +236,7 @@ public class homework {
                     score = Integer.MIN_VALUE;
                 }
                 else {
-                    score = alphaBeta(newBoard, depth - 1, alpha, beta, playerCaptures, opponentCaptures, false);
+                    score = alphaBeta(newBoard, depth - 1, alpha, beta, playerCaptures, opponentCaptures, false, validMoves);
                 }
                 if(score > bestScore) {
                     playerNextMove[0] = move[0];
@@ -250,6 +252,7 @@ public class homework {
         } else {
             int bestScore = Integer.MAX_VALUE;
             for (int[] move : validMoves) {
+                if(board[move[0]][move[1]] != '.') continue;
                 int score;
                 char[][] newBoard = makeMove(board, move, player);
                 playerCaptures += getNoOfCaptures(newBoard, move, player);
@@ -257,7 +260,7 @@ public class homework {
                     score = Integer.MAX_VALUE;
                 }
                 else {
-                    score = alphaBeta(newBoard, depth - 1, alpha, beta, playerCaptures, opponentCaptures, true);
+                    score = alphaBeta(newBoard, depth - 1, alpha, beta, playerCaptures, opponentCaptures, true, validMoves);
                 }
                 if(score > bestScore) {
                     playerNextMove[0] = move[0];
@@ -272,7 +275,6 @@ public class homework {
             return bestScore;
         }
     }
-
     private static boolean isWinningMove(char[][] board, int[] move, char currentPlayer) {
         int row = move[0];
         int col = move[1];
@@ -290,7 +292,6 @@ public class homework {
     private static int getNoOfCaptures(char[][] board, int[] move, char currentPlayer) {
         int row = move[0];
         int col = move[1];
-
         char[] temp = Arrays.copyOfRange(board[row], Math.max(col - 3, 0), Math.min(col + 3, 19) + 1);
         String plusThreeHorizontal = Arrays.toString(temp);
         String plusThreeVertical = Arrays.toString(getColSegment(board, row, col, 3));
@@ -311,7 +312,6 @@ public class homework {
         if(plusThreeDiagonalLeft.contains(getCapturePattern(currentPlayer))) {
             ans++;
         }
-
         return ans;
     }
 
@@ -326,7 +326,7 @@ public class homework {
         return newBoard;
     }
 
-    private static List<int[]> getValidMoves(char[][] board) {
+    /*private static List<int[]> getValidMoves(char[][] board) {
         List<int[]> validMoves = new ArrayList<>();
         for (int i = 1; i <= 19; i++) {
             for (int j = 1; j <= 19; j++) {
@@ -336,7 +336,7 @@ public class homework {
             }
         }
         return validMoves;
-    }
+    }*/
 
     public static int evaluate(char[][] board, int whiteCaptures, int blackCaptures) {
         //Assuming five captures is handled before calling this function
@@ -386,106 +386,173 @@ public class homework {
         String plusTwoDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 2));
         String plusTwoDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 2));
 
-        //Open tessera
-        if(plusFourHorizontal.contains(getOpenTesseraPattern(currentPlayer))) {
-            score += openTesseraScore;
-        }
-        if(plusFourVertical.contains(getOpenTesseraPattern(currentPlayer))) {
-            score += openTesseraScore;
-        }
-        if(plusFourDiagonalRight.contains(getOpenTesseraPattern(currentPlayer))) {
-            score += openTesseraScore;
-        }
-        if(plusFourDiagonalLeft.contains(getOpenTesseraPattern(currentPlayer))) {
-            score += openTesseraScore;
-        }
-
-        //Open tria
-        if(plusThreeHorizontal.contains(getOpenTriaPattern(currentPlayer))) {
-            score += openTriaScore;
-        }
-        if(plusThreeVertical.contains(getOpenTriaPattern(currentPlayer))) {
-            score += openTriaScore;
-        }
-        if(plusThreeDiagonalRight.contains(getOpenTriaPattern(currentPlayer))) {
-            score += openTriaScore;
-        }
-        if(plusThreeDiagonalLeft.contains(getOpenTriaPattern(currentPlayer))) {
-            score += openTriaScore;
+        //Open Tessera
+        String[] tempStringList = getOpenTesseraPatterns(currentPlayer);
+        Set<String> foundSet= new HashSet<>();
+        for(String s : tempStringList) {
+            if (plusFourHorizontal.contains(s)) {
+                foundSet.add(s);
+                score += openTesseraScore;
+            }
+            if (plusFourVertical.contains(s)) {
+                foundSet.add(s);
+                score += openTesseraScore;
+            }
+            if (plusFourDiagonalRight.contains(s)) {
+                foundSet.add(s);
+                score += openTesseraScore;
+            }
+            if (plusFourDiagonalLeft.contains(s)) {
+                foundSet.add(s);
+                score += openTesseraScore;
+            }
         }
 
-        //Stretch tria
-        if(plusThreeHorizontal.contains(getStretchTriaPattern1(currentPlayer)) || plusThreeHorizontal.contains(getStretchTriaPattern2(currentPlayer))) {
-            score += stretchTriaScore;
-        }
-        if(plusThreeVertical.contains(getStretchTriaPattern1(currentPlayer)) || plusThreeHorizontal.contains(getStretchTriaPattern2(currentPlayer))) {
-            score += stretchTriaScore;
-        }
-        if(plusThreeDiagonalRight.contains(getStretchTriaPattern1(currentPlayer)) || plusThreeHorizontal.contains(getStretchTriaPattern2(currentPlayer))) {
-            score += stretchTriaScore;
-        }
-        if(plusThreeDiagonalLeft.contains(getStretchTriaPattern1(currentPlayer)) || plusThreeHorizontal.contains(getStretchTriaPattern2(currentPlayer))) {
-            score += stretchTriaScore;
-        }
-
-        //Open two
-        System.out.println("Horizontal: "  +plusTwoHorizontal);
-        if(plusTwoHorizontal.contains(getOpenTwoPattern(currentPlayer))) {
-            score += openTwoScore;
-        }
-        if(plusTwoVertical.contains(getOpenTwoPattern(currentPlayer))) {
-            score += openTwoScore;
-        }
-        if(plusTwoDiagonalRight.contains(getOpenTwoPattern(currentPlayer))) {
-            score += openTwoScore;
-        }
-        if(plusTwoDiagonalLeft.contains(getOpenTwoPattern(currentPlayer))) {
-            score += openTwoScore;
+        //Stretch Four
+        tempStringList = getStretchFourPatterns(currentPlayer);
+        for(String s : tempStringList) {
+            if (plusFourHorizontal.contains(s) && !foundSet.contains(s)) {
+                score += stretchFourScore;
+            }
+            if (plusFourVertical.contains(s) && !foundSet.contains(s)) {
+                score += stretchFourScore;
+            }
+            if (plusFourDiagonalRight.contains(s) && !foundSet.contains(s)) {
+                score += stretchFourScore;
+            }
+            if (plusFourDiagonalLeft.contains(s) && !foundSet.contains(s)) {
+                score += stretchFourScore;
+            }
         }
 
-        //Stretch two
-        if(plusTwoHorizontal.contains(getStretchTwoPattern(currentPlayer))) {
-            score += stretchTwoScore;
+        //Open Tria
+        tempStringList = getOpenTriaPatterns(currentPlayer);
+        foundSet= new HashSet<>();
+        for(String s : tempStringList) {
+            if (plusThreeHorizontal.contains(s)) {
+                foundSet.add(s);
+                score += openTriaScore;
+            }
+            if (plusThreeVertical.contains(s)) {
+                foundSet.add(s);
+                score += openTriaScore;
+            }
+            if (plusThreeDiagonalRight.contains(s)) {
+                foundSet.add(s);
+                score += openTriaScore;
+            }
+            if (plusThreeDiagonalLeft.contains(s)) {
+                foundSet.add(s);
+                score += openTriaScore;
+            }
         }
-        if(plusTwoVertical.contains(getStretchTwoPattern(currentPlayer))) {
-            score += stretchTwoScore;
+
+        //Stretch Three
+        tempStringList = getStretchThreePatterns(currentPlayer);
+        for(String s : tempStringList) {
+            if (plusThreeHorizontal.contains(s) && !foundSet.contains(s)) {
+                score += stretchTriaScore;
+            }
+            if (plusThreeVertical.contains(s) && !foundSet.contains(s)) {
+                score += stretchTriaScore;
+            }
+            if (plusThreeDiagonalRight.contains(s) && !foundSet.contains(s)) {
+                score += stretchTriaScore;
+            }
+            if (plusThreeDiagonalLeft.contains(s) && !foundSet.contains(s)) {
+                score += stretchTriaScore;
+            }
         }
-        if(plusTwoDiagonalRight.contains(getStretchTwoPattern(currentPlayer))) {
-            score += stretchTwoScore;
+
+        //Open Two
+        tempStringList = getOpenTwoPatterns(currentPlayer);
+        foundSet= new HashSet<>();
+        for(String s : tempStringList) {
+            if (plusTwoHorizontal.contains(s)) {
+                foundSet.add(s);
+                score += openTwoScore;
+            }
+            if (plusTwoVertical.contains(s)) {
+                foundSet.add(s);
+                score += openTwoScore;
+            }
+            if (plusTwoDiagonalRight.contains(s)) {
+                foundSet.add(s);
+                score += openTwoScore;
+            }
+            if (plusTwoDiagonalLeft.contains(s)) {
+                foundSet.add(s);
+                score += openTwoScore;
+            }
         }
-        if(plusTwoDiagonalLeft.contains(getStretchTwoPattern(currentPlayer))) {
-            score += stretchTwoScore;
+
+        //Stretch Two
+        tempStringList = getStretchTwoPatterns(currentPlayer);
+        for(String s : tempStringList) {
+            if (plusTwoHorizontal.contains(s) && !foundSet.contains(s)) {
+                score += stretchTwoScore;
+            }
+            if (plusTwoVertical.contains(s) && !foundSet.contains(s)) {
+                score += stretchTwoScore;
+            }
+            if (plusTwoDiagonalRight.contains(s) && !foundSet.contains(s)) {
+                score += stretchTwoScore;
+            }
+            if (plusTwoDiagonalLeft.contains(s) && !foundSet.contains(s)) {
+                score += stretchTwoScore;
+            }
         }
 
         return score;
     }
 
-    private static String getStretchTwoPattern(char currentPlayer) {
-        return currentPlayer == 'w' ? "w.w" : "b.b";
+    private static String[] getBlockWinPatterns(char currentPlayer) {
+        return currentPlayer == 'w' ? new String[]{"bbwbb", "wbbbb", "bwbbb", "bbbwb", "bbbbw"} : new String[]{"bwwww", "wbwww", "wwbww", "wwwbw", "wwwwb"};
     }
 
-    private static String getOpenTwoPattern(char currentPlayer) {
-        return currentPlayer == 'w' ? ".ww." : ".bb.";
+    private static String[] getBlockTesseraPatterns(char currentPlayer) {
+        return currentPlayer == 'w' ? new String[]{"bbbw", "wbbb", "bbwb", "bwbb"} : new String[]{"wwwb", "bwww", "wwbw", "wbww"};
     }
 
-    private static String getStretchTriaPattern1(char currentPlayer) {
-        return currentPlayer == 'w' ? "w.ww" : "b.bb";
-    }
-    private static String getStretchTriaPattern2(char currentPlayer) {
-        return currentPlayer == 'w' ? "ww.w" : "bb.b";
+    private static String[] getBlockTriaPatterns(char currentPlayer) {
+        return currentPlayer == 'w' ? new String[]{"bbw", "wbb", "bwb"} : new String[]{"wwb", "bww", "wbw"};
     }
 
-    private static String getOpenTriaPattern(char currentPlayer) {
-        return currentPlayer == 'w' ? ".www." : ".bbb.";
+    private static String[] getBlockTwoPatterns() {
+        return new String[]{"bw", "wb"};
     }
-
-    private static String getOpenTesseraPattern(char currentPlayer) {
-        return currentPlayer == 'w' ? ".wwww." : ".bbbb.";
-    }
-
     private static String getCapturePattern(char currentPlayer) {
         return currentPlayer == 'w' ? "wbbw" : "bwwb";
     }
+
+    private static String[] getBlockCapturePatterns(char currentPlayer) {
+        return currentPlayer == 'w' ? new String[]{"wwwb", "bwww"} : new String[] {"bbbw", "wbbb"};
+    }
+
+    private static String[] getOpenTesseraPatterns(char currentPlayer) {
+        return currentPlayer == 'w' ? new String[]{".wwww.", "www.w.", "ww.ww.", ".w.www", ".ww.ww"} : new String[]{".bbbb.", "bbb.b.", "bb.bb.", ".b.bbb", ".bb.bb"};
+    }
+
+    private static String[] getStretchFourPatterns(char currentPlayer) {
+        return currentPlayer == 'w' ? new String[]{".wwww", "wwww.", "ww.ww", "w.www", "www.w"} : new String[]{".bbbb", "bbbb.", "bb.bb", "b.bbb", "bbb.b"};
+    }
+
+    private static String[] getOpenTriaPatterns(char currentPlayer) {
+        return currentPlayer == 'w' ? new String[]{".www.", ".ww.w", "w.ww."} : new String[]{".bbb.", ".bb.b", "b.bb."};
+    }
+
+    private static String[] getStretchThreePatterns(char currentPlayer) {
+        return currentPlayer == 'w' ? new String[]{".www", "www.", "ww.w", "w.ww"} : new String[]{".bbb", "bbb.", "bb.b", "b.bb"};
+    }
+
+    private static String[] getOpenTwoPatterns(char currentPlayer) {
+        return currentPlayer == 'w' ? new String[]{".ww.", "w.w.", ".w.w"} : new String[]{".bb.", "b.b.", ".b.b"};
+    }
+
+    private static String[] getStretchTwoPatterns(char currentPlayer) {
+        return currentPlayer == 'w' ? new String[]{"w.w", "ww.", ".ww"} : new String[]{"b.b", "bb.", ".bb"};
+    }
+
 
     private static String getWinPattern(char currentPlayer) {
         return currentPlayer == 'w' ? "wwwww" : "bbbbb";
@@ -576,32 +643,86 @@ public class homework {
         return row >= 1 && row <= boardSize && col >= 1 && col <= boardSize;
     }
 
-    /*public static void sortMoves(char[][] board, List<int[]> moves) {
+    public static void sortValidMoves() {
         // Separate moves into different categories
+        List<int[]> blockWinMoves = new ArrayList<>();
         List<int[]> captureMoves = new ArrayList<>();
-        List<int[]> openThreeMoves = new ArrayList<>();
-        List<int[]> blockThreeMoves = new ArrayList<>();
+        List<int[]> openTesseraMoves = new ArrayList<>();
+        List<int[]> stretchFourMoves = new ArrayList<>();
+        List<int[]> openTriaMoves = new ArrayList<>();
+        List<int[]> stretchThreeMoves = new ArrayList<>();
         List<int[]> openTwoMoves = new ArrayList<>();
+        List<int[]> blockTesseraMoves = new ArrayList<>();
+        List<int[]> blockTriaMoves = new ArrayList<>();
+        List<int[]> stretchTwoMoves = new ArrayList<>();
         List<int[]> blockTwoMoves = new ArrayList<>();
         List<int[]> otherMoves = new ArrayList<>();
 
-        for (int[] move : moves) {
-            if (isCaptureMove(move)) {
+        for (int[] move : validMoves) {
+            int row = move[0], col = move[1];
+
+            board[row][col] = player;
+
+            char[] temp = Arrays.copyOfRange(board[row], Math.max(col - 4, 0), Math.min(col + 4, 19) + 1);
+            String plusFourHorizontal = Arrays.toString(temp);
+            String plusFourVertical = Arrays.toString(getColSegment(board, row, col, 4));
+            String plusFourDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 4));
+            String plusFourDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 4));
+
+            temp = Arrays.copyOfRange(board[row], Math.max(col - 5, 0), Math.min(col + 5, 19) + 1);
+            String plusFiveHorizontal = Arrays.toString(temp);
+            String plusFiveVertical = Arrays.toString(getColSegment(board, row, col, 5));
+            String plusFiveDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 5));
+            String plusFiveDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 5));
+
+            temp = Arrays.copyOfRange(board[row], Math.max(col - 3, 0), Math.min(col + 3, 19) + 1);
+            String plusThreeHorizontal = Arrays.toString(temp);
+            String plusThreeVertical = Arrays.toString(getColSegment(board, row, col, 3));
+            String plusThreeDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 4));
+            String plusThreeDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 4));
+
+            temp = Arrays.copyOfRange(board[row], Math.max(col - 2, 0), Math.min(col + 2, 19) + 1);
+            String plusTwoHorizontal = String.valueOf(temp);
+            String plusTwoVertical = Arrays.toString(getColSegment(board, row, col, 2));
+            String plusTwoDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 2));
+            String plusTwoDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 2));
+
+            temp = Arrays.copyOfRange(board[row], Math.max(col - 1, 0), Math.min(col + 1, 19) + 1);
+            String plusOneHorizontal = String.valueOf(temp);
+            String plusOneVertical = Arrays.toString(getColSegment(board, row, col, 1));
+            String plusOneDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 1));
+            String plusOneDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 1));
+
+
+            if (isCaptureMove(plusThreeHorizontal, plusThreeVertical, plusThreeDiagonalRight, plusThreeDiagonalLeft)) {
                 captureMoves.add(move);
-            } else if (isOpenThreeMove(move)) {
-                openThreeMoves.add(move);
-            } else if (isBlockThreeMove(board, move)) {
-                blockThreeMoves.add(move);
-            } else if (isOpenTwoMove(board, move)) {
+            } else if (isBlockWinMove(plusFiveHorizontal, plusFiveVertical, plusFiveDiagonalRight, plusFiveDiagonalLeft)) {
+                blockWinMoves.add(move);
+            } else if (isOpenTesseraMove(plusFourHorizontal, plusFourVertical, plusFourDiagonalRight, plusFourDiagonalLeft)) {
+                openTesseraMoves.add(move);
+            } else if (isStretchFourMove(plusFourHorizontal, plusFourVertical, plusFourDiagonalRight, plusFourDiagonalLeft)) {
+                stretchFourMoves.add(move);
+            } else if (isOpenTriaMove(plusThreeHorizontal, plusThreeVertical, plusThreeDiagonalRight, plusThreeDiagonalLeft)) {
+                openTriaMoves.add(move);
+            } else if (isStretchTriaMove(plusThreeHorizontal, plusThreeVertical, plusThreeDiagonalRight, plusThreeDiagonalLeft)) {
+                stretchThreeMoves.add(move);
+            } else if (isOpenTwoMove(plusTwoHorizontal, plusTwoVertical, plusTwoDiagonalRight, plusTwoDiagonalLeft)) {
                 openTwoMoves.add(move);
-            } else if (isBlockTwoMove(board, move)) {
+            } else if (isBlockTesseraMove(plusThreeHorizontal, plusThreeVertical, plusThreeDiagonalRight, plusThreeDiagonalLeft)) {
+                blockTesseraMoves.add(move);
+            } else if (isBlockTriaMove(plusTwoHorizontal, plusTwoVertical, plusTwoDiagonalRight, plusTwoDiagonalLeft)) {
+                blockTriaMoves.add(move);
+            } else if (isStretchTwoMove(plusTwoHorizontal, plusTwoVertical, plusTwoDiagonalRight, plusTwoDiagonalLeft)) {
+                stretchTwoMoves.add(move);
+            } else if (isBlockTwoMove(plusOneHorizontal, plusOneVertical, plusOneDiagonalRight, plusOneDiagonalLeft)) {
                 blockTwoMoves.add(move);
             } else {
                 otherMoves.add(move);
             }
+            board[row][col] = '.';
         }
 
-        // Sort moves in each category based on their value
+        /*// Sort moves in each category based on their value
         Collections.sort(captureMoves, new Comparator<int[]>() {
             @Override
             public int compare(int[] move1, int[] move2) {
@@ -611,7 +732,7 @@ public class homework {
             }
         });
 
-        Collections.sort(openThreeMoves, new Comparator<int[]>() {
+        Collections.sort(openTriaMoves, new Comparator<int[]>() {
             @Override
             public int compare(int[] move1, int[] move2) {
                 int numOpenThrees1 = numOpenThreesCreated(board, move1);
@@ -620,7 +741,7 @@ public class homework {
             }
         });
 
-        Collections.sort(blockThreeMoves, new Comparator<int[]>() {
+        Collections.sort(blockTriaMoves, new Comparator<int[]>() {
             @Override
             public int compare(int[] move1, int[] move2) {
                 int numBlockThrees1 = numBlockThreesCreated(board, move1);
@@ -645,105 +766,138 @@ public class homework {
                 int numBlockTwos2 = numBlockTwosCreated(board, move2);
                 return Integer.compare(numBlockTwos2, numBlockTwos1);
             }
-        });
+        });*/
 
         // Combine all the sorted lists
-        moves.clear();
-        moves.addAll(captureMoves);
-        moves.addAll(openThreeMoves);
-        moves.addAll(blockThreeMoves);
-        moves.addAll(openTwoMoves);
-        moves.addAll(blockTwoMoves);
-        moves.addAll(otherMoves);
+        validMoves.clear();
+        validMoves.addAll(blockWinMoves);
+        validMoves.addAll(captureMoves);
+        validMoves.addAll(openTesseraMoves);
+        validMoves.addAll(stretchFourMoves);
+        validMoves.addAll(openTriaMoves);
+        validMoves.addAll(stretchThreeMoves);
+        validMoves.addAll(openTwoMoves);
+        validMoves.addAll(blockTesseraMoves);
+        validMoves.addAll(blockTriaMoves);
+        validMoves.addAll(stretchTwoMoves);
+        validMoves.addAll(blockTwoMoves);
+        validMoves.addAll(otherMoves);
     }
 
-    public static boolean isCaptureMove(int[] move) {
-        int row = move[0];
-        int col = move[1];
-        char opponent = (player == 'w') ? 'b' : 'w';
-        if (board[row][col] != '.') {
-            return false; // can't place a stone on an occupied cell
+    private static boolean isBlockWinMove(String plusFiveHorizontal, String plusFiveVertical, String plusFiveDiagonalRight, String plusFiveDiagonalLeft) {
+        String[] patterns = getBlockWinPatterns(player);
+        boolean ans = false;
+        for(String s : patterns) {
+            ans |= plusFiveHorizontal.contains(s) || plusFiveVertical.contains(s)
+                    || plusFiveDiagonalRight.contains(s) || plusFiveDiagonalLeft.contains(s);
+            if(ans) return true;
         }
-        int capturedStones = 0;
-        // Check for captures in horizontal direction
-        for (int c = Math.max(0, col - 2); c <= Math.min(18, col + 2); c++) {
-            if (c == col) {
-                continue;
-            }
-            if (board[row][c] == player) {
-                capturedStones++;
-            } else if (board[row][c] == opponent) {
-                capturedStones = 0;
-                break;
-            }
+        return ans;
+    }
+
+    private static boolean isOpenTesseraMove(String horizontal, String vertical, String diagRight, String diagLeft) {
+        String[] patterns = getOpenTesseraPatterns(player);
+        boolean ans = false;
+        for(String s : patterns) {
+            ans |= horizontal.contains(s) || vertical.contains(s)
+                    || diagRight.contains(s) || diagLeft.contains(s);
+            if(ans) return true;
         }
-        if (capturedStones >= 2) {
-            return true;
+        return ans;
+    }
+
+    private static boolean isStretchFourMove(String horizontal, String vertical, String diagRight, String diagLeft) {
+        String[] patterns = getStretchFourPatterns(player);
+        boolean ans = false;
+        for(String s : patterns) {
+            ans |= horizontal.contains(s) || vertical.contains(s)
+                    || diagRight.contains(s) || diagLeft.contains(s);
+            if(ans) return true;
         }
-        capturedStones = 0;
-        // Check for captures in vertical direction
-        for (int r = Math.max(0, row - 2); r <= Math.min(18, row + 2); r++) {
-            if (r == row) {
-                continue;
-            }
-            if (board[r][col] == player) {
-                capturedStones++;
-            } else if (board[r][col] == opponent) {
-                capturedStones = 0;
-                break;
-            }
+        return ans;
+    }
+
+    private static boolean isOpenTriaMove(String horizontal, String vertical, String diagRight, String diagLeft) {
+        String[] patterns = getOpenTriaPatterns(player);
+        boolean ans = false;
+        for(String s : patterns) {
+            ans |= horizontal.contains(s) || vertical.contains(s)
+                    || diagRight.contains(s) || diagLeft.contains(s);
+            if(ans) return true;
         }
-        if (capturedStones >= 2) {
-            return true;
+        return ans;
+    }
+    private static boolean isStretchTriaMove(String horizontal, String vertical, String diagRight, String diagLeft) {
+        String[] patterns = getStretchThreePatterns(player);
+        boolean ans = false;
+        for(String s : patterns) {
+            ans |= horizontal.contains(s) || vertical.contains(s)
+                    || diagRight.contains(s) || diagLeft.contains(s);
+            if(ans) return true;
         }
-        capturedStones = 0;
-        // Check for captures in diagonal direction (top-left to bottom-right)
-        for (int i = -2; i <= 2; i++) {
-            int r = row + i;
-            int c = col + i;
-            if (r < 0 || r > 18 || c < 0 || c > 18) {
-                continue;
-            }
-            if (r == row && c == col) {
-                continue;
-            }
-            if (board[r][c] == player) {
-                capturedStones++;
-            } else if (board[r][c] == opponent) {
-                capturedStones = 0;
-                break;
-            }
+        return ans;
+    }
+
+    private static boolean isOpenTwoMove(String horizontal, String vertical, String diagRight, String diagLeft) {
+        String[] patterns = getOpenTwoPatterns(player);
+        boolean ans = false;
+        for(String s : patterns) {
+            ans |= horizontal.contains(s) || vertical.contains(s)
+                    || diagRight.contains(s) || diagLeft.contains(s);
+            if(ans) return true;
         }
-        if (capturedStones >= 2) {
-            return true;
+        return ans;
+    }
+
+    private static boolean isBlockTesseraMove(String horizontal, String vertical, String diagRight, String diagLeft) {
+        String[] patterns = getBlockTesseraPatterns(player);
+        boolean ans = false;
+        for(String s : patterns) {
+            ans |= horizontal.contains(s) || vertical.contains(s)
+                    || diagRight.contains(s) || diagLeft.contains(s);
+            if(ans) return true;
         }
-        capturedStones = 0;
-        // Check for captures in diagonal direction (bottom-left to top-right)
-        for (int i = -2; i <= 2; i++) {
-            int r = row - i;
-            int c = col + i;
-            if (r < 0 || r > 18 || c < 0 || c > 18) {
-                continue;
-            }
-            if (r == row && c == col) {
-                continue;
-            }
-            if (board[r][c] == player) {
-                capturedStones++;
-            } else if (board[r][c] == opponent) {
-                capturedStones = 0;
-                break;
-            }
+        return ans;
+    }
+
+    private static boolean isBlockTriaMove(String horizontal, String vertical, String diagRight, String diagLeft) {
+        String[] patterns = getBlockTriaPatterns(player);
+        boolean ans = false;
+        for(String s : patterns) {
+            ans |= horizontal.contains(s) || vertical.contains(s)
+                    || diagRight.contains(s) || diagLeft.contains(s);
+            if(ans) return true;
         }
-        if (capturedStones >= 2) {
-            return true;
+        return ans;
+    }
+
+    private static boolean isBlockTwoMove(String horizontal, String vertical, String diagRight, String diagLeft) {
+        String[] patterns = getBlockTwoPatterns();
+        boolean ans = false;
+        for(String s : patterns) {
+            ans |= horizontal.contains(s) || vertical.contains(s)
+                    || diagRight.contains(s) || diagLeft.contains(s);
+            if(ans) return true;
         }
-        return false;
+        return ans;
+    }
+
+    private static boolean isStretchTwoMove(String horizontal, String vertical, String diagRight, String diagLeft) {
+        String[] patterns = getStretchTwoPatterns(player);
+        boolean ans = false;
+        for(String s : patterns) {
+            ans |= horizontal.contains(s) || vertical.contains(s)
+                    || diagRight.contains(s) || diagLeft.contains(s);
+            if(ans) return true;
+        }
+        return ans;
     }
 
 
-    public static boolean isInBounds(int x, int y) {
-        return x >= 0 && y >= 0 && x <= 19 && y <= 19;
+    private static boolean isCaptureMove(String plusThreeHorizontal, String plusThreeVertical, String plusThreeDiagonalRight, String plusThreeDiagonalLeft) {
+        String pattern = getCapturePattern(player);
+        return plusThreeHorizontal.contains(pattern) || plusThreeVertical.contains(pattern)
+                || plusThreeDiagonalRight.contains(pattern) || plusThreeDiagonalLeft.contains(pattern);
     }
 
     private static void getUpdatedBoardScore(int[][] updatedMove) {
@@ -756,7 +910,6 @@ public class homework {
 
 
 
-*/
 
     private static void setEmptyCorner(int[] ans) {
         System.out.println(board[7][7]);

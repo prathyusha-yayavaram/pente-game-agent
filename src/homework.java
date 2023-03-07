@@ -1,3 +1,6 @@
+import com.sun.org.apache.xml.internal.security.algorithms.implementations.IntegrityHmac;
+import org.w3c.dom.stylesheets.LinkStyle;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -35,12 +38,14 @@ public class homework {
     static final String BLACK = "BLACK";
     static final String WHITE = "WHITE";
 
+    private Map<String, MoveData> transpositionTable = new HashMap<>();
+
     //Scores
     static final int captureScore = 10000;
     static final int openTesseraScore = 6000;
-    static final int stretchFourScore = 6000;
+    static final int stretchFourScore = 5000;
     static final int openTriaScore = 1000;
-    static final int stretchTriaScore = 300;
+    static final int stretchTriaScore = 500;
     static final int openTwoScore = 200;
     static final int stretchTwoScore = 10;
 
@@ -213,6 +218,99 @@ public class homework {
         System.out.println("Number of pairs: " + pairs);
     }
 
+    private static class MoveData {
+        private int score;
+        private int depth;
+        private int[] bestMove = new int[2];
+
+        public MoveData(int score, int depth) {
+            this.score = score;
+            this.depth = depth;
+        }
+
+        public MoveData(int score, int depth, int[] bestMove) {
+            this.score = score;
+            this.depth = depth;
+            this.bestMove[0] = bestMove[0];
+            this.bestMove[1] = bestMove[1];
+        }
+    }
+
+    public int alphaBeta(char[][] board, int depth, int alpha, int beta, boolean maximizingPlayer) {
+        String boardKey = getBoardKey(board);
+        if (transpositionTable.containsKey(boardKey)) {
+            MoveData moveData = transpositionTable.get(boardKey);
+            if (moveData.getDepth() >= depth) {
+                if (moveData.getType() == NodeType.EXACT) {
+                    return moveData.getScore();
+                } else if (moveData.getType() == NodeType.LOWERBOUND) {
+                    alpha = Math.max(alpha, moveData.getScore());
+                } else if (moveData.getType() == NodeType.UPPERBOUND) {
+                    beta = Math.min(beta, moveData.getScore());
+                }
+                if (alpha >= beta) {
+                    return moveData.getScore();
+                }
+            }
+        }
+
+        if (depth == 0 || board.isGameOver()) {
+            int score = board.evaluate();
+            transpositionTable.put(boardKey, new MoveData(score, depth, NodeType.EXACT));
+            return score;
+        }
+
+        if (validMoves.isEmpty()) {
+            int score = board.evaluate();
+            transpositionTable.put(boardKey, new MoveData(score, depth, NodeType.EXACT));
+            return score;
+        }
+
+        if (maximizingPlayer) {
+            int maxScore = Integer.MIN_VALUE;
+            int[] bestMove = new int[2];
+            bestMove[0] = Integer.MIN_VALUE;
+            for (int[] move : validMoves) {
+                if(board[move[0]][move[1]] != '.') continue;
+                char[][] newBoard = makeMove(board, move, player);
+                int score = alphaBeta(newBoard, depth - 1, alpha, beta, false);
+                if (score > maxScore) {
+                    maxScore = score;
+                    bestMove[0] = move[0];
+                    bestMove[1] = move[1];
+                }
+                alpha = Math.max(alpha, score);
+                if (alpha >= beta) {
+                    break;
+                }
+            }
+            if (bestMove[0] == Integer.MIN_VALUE) {
+                transpositionTable.put(boardKey, new MoveData(maxScore, depth, NodeType.EXACT, bestMove));
+            }
+            return maxScore;
+        } else {
+            int minScore = Integer.MAX_VALUE;
+            Move bestMove = null;
+            for (Move move : validMoves) {
+                board.makeMove(move, Player.MIN);
+                int score = alphaBeta(board, depth - 1, alpha, beta, true);
+                board.undoMove(move);
+                if (score < minScore) {
+                    minScore = score;
+                    bestMove = move;
+                }
+                beta = Math.min(beta, score);
+                if (alpha >= beta) {
+                    break;
+                }
+            }
+            if (bestMove != null) {
+                transpositionTable.put(boardKey, new MoveData(minScore, depth, NodeType.EXACT, bestMove));
+            }
+            return minScore;
+        }
+    }
+
     public static int alphaBeta(char[][] board, int depth, int alpha, int beta, int playerCaptures, int opponentCaptures, boolean isMaximizingPlayer, List<int[]> validMoves) {
         if(playerCaptures == 5) {
             return Integer.MAX_VALUE;
@@ -238,10 +336,6 @@ public class homework {
                 else {
                     score = alphaBeta(newBoard, depth - 1, alpha, beta, playerCaptures, opponentCaptures, false, validMoves);
                 }
-                if(score > bestScore) {
-                    playerNextMove[0] = move[0];
-                    playerNextMove[1] = move[1];
-                }
                 bestScore = Math.max(score, bestScore);
                 alpha = Math.max(alpha, score);
                 if (beta <= alpha) {
@@ -262,7 +356,7 @@ public class homework {
                 else {
                     score = alphaBeta(newBoard, depth - 1, alpha, beta, playerCaptures, opponentCaptures, true, validMoves);
                 }
-                if(score > bestScore) {
+                if(score > bestScore || score == Integer.MAX_VALUE) {
                     playerNextMove[0] = move[0];
                     playerNextMove[1] = move[1];
                 }
@@ -279,24 +373,24 @@ public class homework {
         int row = move[0];
         int col = move[1];
 
-        char[] temp = Arrays.copyOfRange(board[row], Math.max(col - 4, 0), Math.min(col + 4, 19) + 1);
-        String plusFourHorizontal = Arrays.toString(temp);
-        String plusFourVertical = Arrays.toString(getColSegment(board, row, col, 4));
-        String plusFourDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 4));
-        String plusFourDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 4));
+        char[] temp = Arrays.copyOfRange(board[row], Math.max(col - 5, 0), Math.min(col + 5, 19) + 1);
+        String plusFiveHorizontal = String.valueOf(temp);
+        String plusFiveVertical = String.valueOf(getColSegment(board, row, col, 5));
+        String plusFiveDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 5));
+        String plusFiveDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 5));
 
-        return plusFourHorizontal.contains(getWinPattern(currentPlayer)) || plusFourVertical.contains(getWinPattern(currentPlayer)) ||
-                plusFourDiagonalRight.contains(getWinPattern(currentPlayer)) || plusFourDiagonalLeft.contains(getWinPattern(currentPlayer));
+        return plusFiveHorizontal.contains(getWinPattern(currentPlayer)) || plusFiveVertical.contains(getWinPattern(currentPlayer)) ||
+                plusFiveDiagonalRight.contains(getWinPattern(currentPlayer)) || plusFiveDiagonalLeft.contains(getWinPattern(currentPlayer));
     }
 
     private static int getNoOfCaptures(char[][] board, int[] move, char currentPlayer) {
         int row = move[0];
         int col = move[1];
         char[] temp = Arrays.copyOfRange(board[row], Math.max(col - 3, 0), Math.min(col + 3, 19) + 1);
-        String plusThreeHorizontal = Arrays.toString(temp);
-        String plusThreeVertical = Arrays.toString(getColSegment(board, row, col, 3));
-        String plusThreeDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 4));
-        String plusThreeDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 4));
+        String plusThreeHorizontal = String.valueOf(temp);
+        String plusThreeVertical = String.valueOf(getColSegment(board, row, col, 3));
+        String plusThreeDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 4));
+        String plusThreeDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 4));
         int ans = 0;
         //Capture Move
         //TODO: Remove the captured coins and update the board
@@ -369,22 +463,43 @@ public class homework {
         int score = 0;
 
         char[] temp = Arrays.copyOfRange(board[row], Math.max(col - 4, 0), Math.min(col + 4, 19) + 1);
-        String plusFourHorizontal = Arrays.toString(temp);
-        String plusFourVertical = Arrays.toString(getColSegment(board, row, col, 4));
-        String plusFourDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 4));
-        String plusFourDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 4));
+        String plusFourHorizontal = String.valueOf(temp);
+        String plusFourVertical = String.valueOf(getColSegment(board, row, col, 4));
+        String plusFourDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 4));
+        String plusFourDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 4));
+
+        temp = Arrays.copyOfRange(board[row], Math.max(col - 5, 0), Math.min(col + 5, 19) + 1);
+        String plusFiveHorizontal = String.valueOf(temp);
+        String plusFiveVertical = String.valueOf(getColSegment(board, row, col, 5));
+        String plusFiveDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 5));
+        String plusFiveDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 5));
 
         temp = Arrays.copyOfRange(board[row], Math.max(col - 3, 0), Math.min(col + 3, 19) + 1);
-        String plusThreeHorizontal = Arrays.toString(temp);
-        String plusThreeVertical = Arrays.toString(getColSegment(board, row, col, 3));
-        String plusThreeDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 4));
-        String plusThreeDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 4));
+        String plusThreeHorizontal = String.valueOf(temp);
+        String plusThreeVertical = String.valueOf(getColSegment(board, row, col, 3));
+        String plusThreeDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 4));
+        String plusThreeDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 4));
 
         temp = Arrays.copyOfRange(board[row], Math.max(col - 2, 0), Math.min(col + 2, 19) + 1);
         String plusTwoHorizontal = String.valueOf(temp);
-        String plusTwoVertical = Arrays.toString(getColSegment(board, row, col, 2));
-        String plusTwoDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 2));
-        String plusTwoDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 2));
+        String plusTwoVertical = String.valueOf(getColSegment(board, row, col, 2));
+        String plusTwoDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 2));
+        String plusTwoDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 2));
+
+        //Win pattern
+        String str = getWinPattern(currentPlayer);
+            if (plusFiveHorizontal.contains(str)) {
+                return Integer.MAX_VALUE;
+            }
+            if (plusFiveVertical.contains(str)) {
+                return Integer.MAX_VALUE;
+            }
+            if (plusFiveDiagonalRight.contains(str)) {
+                return Integer.MAX_VALUE;
+            }
+            if (plusFiveDiagonalLeft.contains(str)) {
+                return Integer.MAX_VALUE;
+            }
 
         //Open Tessera
         String[] tempStringList = getOpenTesseraPatterns(currentPlayer);
@@ -561,7 +676,7 @@ public class homework {
 
 
     private static char[] getDiagLeftSegment(char[][] board, int row, int col, int size) {
-        char[] diagLeftSegment = new char[9];
+        char[] diagLeftSegment = new char[11];
         int k = 0;
         for(int i = row + size, j = col - size; i >= row - size && j <= col + size; i--, j++) {
             if(!isValidPosition(19, i, j))
@@ -572,7 +687,7 @@ public class homework {
     }
 
     private static char[] getDiagRightSegment(char[][] board, int row, int col, int size) {
-        char[] diagRightSegment = new char[9];
+        char[] diagRightSegment = new char[11];
         int k = 0;
         for(int i = row - size, j = col - size; i <= row + size && j <= col + size; i++, j++) {
             if(!isValidPosition(19, i, j))
@@ -583,7 +698,7 @@ public class homework {
     }
 
     private static char[] getColSegment(char[][] board, int row, int col, int size) {
-        char[] colSegment = new char[9];
+        char[] colSegment = new char[11];
         int k = 0;
         for(int j = Math.max(0, row - size); j <= Math.min(row + size, 19); j++) {
             colSegment[k++] = board[j][col];
@@ -646,6 +761,7 @@ public class homework {
     public static void sortValidMoves() {
         // Separate moves into different categories
         List<int[]> blockWinMoves = new ArrayList<>();
+        List<int[]> winMoves = new ArrayList<>();
         List<int[]> captureMoves = new ArrayList<>();
         List<int[]> openTesseraMoves = new ArrayList<>();
         List<int[]> stretchFourMoves = new ArrayList<>();
@@ -664,37 +780,39 @@ public class homework {
             board[row][col] = player;
 
             char[] temp = Arrays.copyOfRange(board[row], Math.max(col - 4, 0), Math.min(col + 4, 19) + 1);
-            String plusFourHorizontal = Arrays.toString(temp);
-            String plusFourVertical = Arrays.toString(getColSegment(board, row, col, 4));
-            String plusFourDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 4));
-            String plusFourDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 4));
+            String plusFourHorizontal = String.valueOf(temp);
+            String plusFourVertical = String.valueOf(getColSegment(board, row, col, 4));
+            String plusFourDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 4));
+            String plusFourDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 4));
 
             temp = Arrays.copyOfRange(board[row], Math.max(col - 5, 0), Math.min(col + 5, 19) + 1);
-            String plusFiveHorizontal = Arrays.toString(temp);
-            String plusFiveVertical = Arrays.toString(getColSegment(board, row, col, 5));
-            String plusFiveDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 5));
-            String plusFiveDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 5));
+            String plusFiveHorizontal = String.valueOf(temp);
+            String plusFiveVertical = String.valueOf(getColSegment(board, row, col, 5));
+            String plusFiveDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 5));
+            String plusFiveDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 5));
 
             temp = Arrays.copyOfRange(board[row], Math.max(col - 3, 0), Math.min(col + 3, 19) + 1);
-            String plusThreeHorizontal = Arrays.toString(temp);
-            String plusThreeVertical = Arrays.toString(getColSegment(board, row, col, 3));
-            String plusThreeDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 4));
-            String plusThreeDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 4));
+            String plusThreeHorizontal = String.valueOf(temp);
+            String plusThreeVertical = String.valueOf(getColSegment(board, row, col, 3));
+            String plusThreeDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 4));
+            String plusThreeDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 4));
 
             temp = Arrays.copyOfRange(board[row], Math.max(col - 2, 0), Math.min(col + 2, 19) + 1);
             String plusTwoHorizontal = String.valueOf(temp);
-            String plusTwoVertical = Arrays.toString(getColSegment(board, row, col, 2));
-            String plusTwoDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 2));
-            String plusTwoDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 2));
+            String plusTwoVertical = String.valueOf(getColSegment(board, row, col, 2));
+            String plusTwoDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 2));
+            String plusTwoDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 2));
 
             temp = Arrays.copyOfRange(board[row], Math.max(col - 1, 0), Math.min(col + 1, 19) + 1);
             String plusOneHorizontal = String.valueOf(temp);
-            String plusOneVertical = Arrays.toString(getColSegment(board, row, col, 1));
-            String plusOneDiagonalRight = Arrays.toString(getDiagRightSegment(board, row, col, 1));
-            String plusOneDiagonalLeft = Arrays.toString(getDiagLeftSegment(board, row, col, 1));
+            String plusOneVertical = String.valueOf(getColSegment(board, row, col, 1));
+            String plusOneDiagonalRight = String.valueOf(getDiagRightSegment(board, row, col, 1));
+            String plusOneDiagonalLeft = String.valueOf(getDiagLeftSegment(board, row, col, 1));
 
 
-            if (isCaptureMove(plusThreeHorizontal, plusThreeVertical, plusThreeDiagonalRight, plusThreeDiagonalLeft)) {
+            if(isWinningMove(board, move, player)) {
+                winMoves.add(move);
+            } else if (isCaptureMove(plusThreeHorizontal, plusThreeVertical, plusThreeDiagonalRight, plusThreeDiagonalLeft)) {
                 captureMoves.add(move);
             } else if (isBlockWinMove(plusFiveHorizontal, plusFiveVertical, plusFiveDiagonalRight, plusFiveDiagonalLeft)) {
                 blockWinMoves.add(move);
@@ -770,6 +888,7 @@ public class homework {
 
         // Combine all the sorted lists
         validMoves.clear();
+        validMoves.addAll(winMoves);
         validMoves.addAll(blockWinMoves);
         validMoves.addAll(captureMoves);
         validMoves.addAll(openTesseraMoves);

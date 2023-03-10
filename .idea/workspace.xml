@@ -4,19 +4,32 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="383e11cf-db33-40b3-b9b9-cf170491f506" name="Changes" comment="First commit">
-      <change afterPath="$PROJECT_DIR$/output.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/input.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/output.txt" afterDir="false" />
+    <list default="true" id="383e11cf-db33-40b3-b9b9-cf170491f506" name="Changes" comment="40 percent done">
+      <change afterPath="$PROJECT_DIR$/src/calibrate.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/homework.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/output.txt" beforeDir="false" afterPath="$PROJECT_DIR$/output.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/homework.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/homework.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/input.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/input.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/output.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/output.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="MarkdownSettingsMigration">
@@ -32,7 +45,7 @@
   "keyToString": {
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "last_opened_file_path": "E:/CSCI561/Homeworks/AiHomework"
+    "last_opened_file_path": "E:/CSCI561/AIHomework2/src"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -40,17 +53,30 @@
       <recent name="E:\CSCI561\AIHomework2\src" />
     </key>
   </component>
-  <component name="RunManager">
-    <configuration name="homework" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="homework" />
+  <component name="RunManager" selected="Application.homework">
+    <configuration name="calibrate" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="calibrate" />
       <module name="AIHomework2" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="homework" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="homework" />
+      <module name="AIHomework2" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Application.calibrate" />
+      <item itemvalue="Application.homework" />
+    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Application.homework" />
+        <item itemvalue="Application.calibrate" />
       </list>
     </recent_temporary>
   </component>
@@ -70,11 +96,66 @@
       <option name="project" value="LOCAL" />
       <updated>1677371416659</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="IO done">
+      <created>1677701881849</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1677701881849</updated>
+    </task>
+    <task id="LOCAL-00003" summary="40 percent done">
+      <created>1677962908007</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1677962908007</updated>
+    </task>
+    <task id="LOCAL-00004" summary="40 percent done">
+      <created>1678101720319</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1678101720319</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="First commit" />
-    <option name="LAST_COMMIT_MESSAGE" value="First commit" />
+    <MESSAGE value="I/p o/p" />
+    <MESSAGE value="IO done" />
+    <MESSAGE value="40 percent done" />
+    <option name="LAST_COMMIT_MESSAGE" value="40 percent done" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/homework.java</url>
+          <line>818</line>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/homework.java</url>
+          <line>150</line>
+          <option name="timeStamp" value="34" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/homework.java</url>
+          <line>149</line>
+          <option name="timeStamp" value="40" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/homework.java</url>
+          <line>86</line>
+          <option name="timeStamp" value="41" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/homework.java</url>
+          <line>98</line>
+          <option name="timeStamp" value="42" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

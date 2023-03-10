@@ -1,46 +1,16 @@
+import jdk.nashorn.internal.runtime.regexp.joni.exception.SyntaxException;
+
 import java.io.*;
 import java.util.*;
 
 
-class BoardStatus {
-    int minRow;
-    int maxRow;
-    int minCol;
-    int maxCol;
-    int noOfWhites;
-    int noOfBlacks;
-    int noOfPlayerCaptures;
-    int noOfOpponentCaptures;
 
-    BoardStatus(int minRow, int maxRow, int minCol, int maxCol, int noOfWhites, int noOfBlacks, int noOfPlayerCaptures, int noOfOpponentCaptures) {
-        this.minRow = minRow;
-        this.maxRow = maxRow;
-        this.minCol = minCol;
-        this.maxCol = maxCol;
-        this.noOfWhites = noOfWhites;
-        this.noOfBlacks = noOfBlacks;
-        this.noOfPlayerCaptures = noOfPlayerCaptures;
-        this.noOfOpponentCaptures = noOfOpponentCaptures;
-    }
-}
-
-class BoardNode implements Serializable {
-    int boardKey;
-    int[] bestMove;
-    int score;
-
-    public BoardNode(int boardKey, int[] bestMove, int score) {
-        this.boardKey = boardKey;
-        this.bestMove = bestMove;
-        this.score = score;
-    }
-}
-
-public class homework {
+public class calibrate {
 
     //Parse from playtest.txt or create new only if you cant find any data
     static BoardStatus boardStatus = new BoardStatus(1, 19, 1, 19, 0, 0, 0, 0);
     static final String BLACK = "BLACK";
+    static final String WHITE = "WHITE";
 
     //Scores
     static final int captureScore = 10000;
@@ -50,26 +20,48 @@ public class homework {
     static final int stretchTriaScore = 500;
     static final int openTwoScore = 200;
     static final int stretchTwoScore = 10;
+
     static int[] preCalculatedFinalMove = new int[2];
     static char player;
     static char opponent;
     static List<int[]> validMoves = new ArrayList<>();
 
-    static char[][] board = new char[20][20];
+    static char[][] board = {
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'b', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'b', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'w', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', 'w', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+        {'.','.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'}
+    };
 
     static HashMap<Integer, BoardNode> nodeData = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
         // Read input from file
-        String color;
-        double timeRemaining;
-        int whiteCaptured;
-        int blackCaptured;
+        String color = "";
+        double timeRemaining = 0.0;
+        int whiteCaptured = 0;
+        int blackCaptured = 0;
 
-        File file = new File("input.txt");
+        File file = new File(System.getProperty("user.dir") + "/src/input.txt");
         Scanner scanner = new Scanner(file);
 
-        PrintWriter output = new PrintWriter(new File("output.txt"));
+        PrintWriter output = new PrintWriter(new File("calibrate.txt"));
         // Read color
         color = scanner.nextLine();
 
@@ -87,19 +79,11 @@ public class homework {
         boardStatus.noOfPlayerCaptures = player == 'b' ? blackCaptured : whiteCaptured;
         boardStatus.noOfOpponentCaptures = opponent == 'b' ? blackCaptured : whiteCaptured;
 
-
-        // Read board
-        for (int i = 19; i >= 1; i--) {
-            String line = scanner.nextLine();
-            for (int j = 1; j <= 19; j++) {
-                board[i][j] = line.charAt(j - 1);
-            }
-        }
-
+        long startTime = System.currentTimeMillis();
         updateBoardStatus(board);
-        int[] move = findNextMove(color, timeRemaining);
-        // Print output
-        output.println(convertMoveFormat(move));
+        findNextMove(color, 3);
+        long endTime = System.currentTimeMillis();
+        output.println(endTime - startTime);
 
         scanner.close();
         output.close();
@@ -123,7 +107,7 @@ public class homework {
         }
     }
 
-    static int[] findNextMove(String color, double timeRemaining) {
+    static int[] findNextMove(String color, int depth) {
         int[] ans = new int[2];
         //Case when first move on board is ours
         if (boardStatus.noOfBlacks == 0 && boardStatus.noOfWhites == 0) {
@@ -146,51 +130,10 @@ public class homework {
         if(isBlockOpenTesseraMoveExists) {
             return preCalculatedFinalMove;
         }
-        getHashKeyFromFile();
-        BoardNode rootNode = alphaBeta(board, 3, Integer.MIN_VALUE, Integer.MAX_VALUE, boardStatus.noOfPlayerCaptures, boardStatus.noOfOpponentCaptures, true, validMoves);
-        writeHashKeyToFile();
+        BoardNode rootNode = alphaBeta(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, boardStatus.noOfPlayerCaptures, boardStatus.noOfOpponentCaptures, true, validMoves);
 
         return (rootNode.bestMove[0] == 0 && rootNode.bestMove[1] == 0) ? validMoves.get(0) : rootNode.bestMove;
     }
-
-    private static void writeHashKeyToFile() {
-        // Serialize the HashMap to a byte array
-        byte[] data = null;
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeObject(nodeData);
-            data = baos.toByteArray();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // Write the byte array to a file
-        try {
-
-            FileOutputStream fos = new FileOutputStream("/playdata.txt");
-            fos.write(data);
-            fos.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void getHashKeyFromFile() {
-        // Deserialize the HashMap from the file
-        try {
-            FileInputStream fis = new FileInputStream("playdata.txt");
-            byte[] buffer = new byte[fis.available()];
-            if(buffer.length == 0) return;
-            fis.read(buffer);
-            ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
-            nodeData = (HashMap<Integer, BoardNode>) ois.readObject();
-            fis.close();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
 
     private static void getLegalMoves() {
         for (int i = 1; i <= 19; i++) {
@@ -457,22 +400,22 @@ public class homework {
         //Open Tessera
         str = getOpenTesseraPattern(currentPlayer);
         boolean isFoundBefore = false;
-            if (plusFourHorizontal.contains(str)) {
-                isFoundBefore = true;
-                score += openTesseraScore;
-            }
-            if (plusFourVertical.contains(str)) {
-                isFoundBefore = true;
-                score += openTesseraScore;
-            }
-            if (plusFourDiagonalRight.contains(str)) {
-                isFoundBefore = true;
-                score += openTesseraScore;
-            }
-            if (plusFourDiagonalLeft.contains(str)) {
-                isFoundBefore = true;
-                score += openTesseraScore;
-            }
+        if (plusFourHorizontal.contains(str)) {
+            isFoundBefore = true;
+            score += openTesseraScore;
+        }
+        if (plusFourVertical.contains(str)) {
+            isFoundBefore = true;
+            score += openTesseraScore;
+        }
+        if (plusFourDiagonalRight.contains(str)) {
+            isFoundBefore = true;
+            score += openTesseraScore;
+        }
+        if (plusFourDiagonalLeft.contains(str)) {
+            isFoundBefore = true;
+            score += openTesseraScore;
+        }
 
         //Stretch Four
         String[] tempStringList = getStretchFourPatterns(currentPlayer);
@@ -494,22 +437,22 @@ public class homework {
         //Open Tria
         str = getOpenTriaPattern(currentPlayer);
         isFoundBefore = false;
-            if (plusThreeHorizontal.contains(str)) {
-                isFoundBefore = true;
-                score += openTriaScore;
-            }
-            if (plusThreeVertical.contains(str)) {
-                isFoundBefore = true;
-                score += openTriaScore;
-            }
-            if (plusThreeDiagonalRight.contains(str)) {
-                isFoundBefore = true;
-                score += openTriaScore;
-            }
-            if (plusThreeDiagonalLeft.contains(str)) {
-                isFoundBefore = true;
-                score += openTriaScore;
-            }
+        if (plusThreeHorizontal.contains(str)) {
+            isFoundBefore = true;
+            score += openTriaScore;
+        }
+        if (plusThreeVertical.contains(str)) {
+            isFoundBefore = true;
+            score += openTriaScore;
+        }
+        if (plusThreeDiagonalRight.contains(str)) {
+            isFoundBefore = true;
+            score += openTriaScore;
+        }
+        if (plusThreeDiagonalLeft.contains(str)) {
+            isFoundBefore = true;
+            score += openTriaScore;
+        }
 
         //Stretch Three
         tempStringList = getStretchThreePatterns(currentPlayer);
@@ -859,7 +802,7 @@ public class homework {
     private static boolean isOpenTesseraMove(String horizontal, String vertical, String diagRight, String diagLeft) {
         String s = getOpenTesseraPattern(player);
         return horizontal.contains(s) || vertical.contains(s)
-                    || diagRight.contains(s) || diagLeft.contains(s);
+                || diagRight.contains(s) || diagLeft.contains(s);
     }
 
     private static boolean isStretchFourMove(String horizontal, String vertical, String diagRight, String diagLeft) {
@@ -876,7 +819,7 @@ public class homework {
     private static boolean isOpenTriaMove(String horizontal, String vertical, String diagRight, String diagLeft) {
         String s = getOpenTriaPattern(player);
         return horizontal.contains(s) || vertical.contains(s)
-                    || diagRight.contains(s) || diagLeft.contains(s);
+                || diagRight.contains(s) || diagLeft.contains(s);
     }
 
     private static boolean isStretchTriaMove(String horizontal, String vertical, String diagRight, String diagLeft) {
@@ -892,8 +835,8 @@ public class homework {
 
     private static boolean isOpenTwoMove(String horizontal, String vertical, String diagRight, String diagLeft) {
         String s = getOpenTwoPattern(player);
-       return horizontal.contains(s) || vertical.contains(s)
-                    || diagRight.contains(s) || diagLeft.contains(s);
+        return horizontal.contains(s) || vertical.contains(s)
+                || diagRight.contains(s) || diagLeft.contains(s);
     }
 
     private static boolean isBlockTesseraMove(String horizontal, String vertical, String diagRight, String diagLeft) {
